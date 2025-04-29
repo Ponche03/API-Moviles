@@ -21,9 +21,9 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .catch(err => console.log(err));
 
 // Rutas
-app.use("/api", require("./routes/usuarioRoutes"));
-app.use("/api", require("./routes/gastoRoutes"));
-app.use("/api", require("./routes/ingresoRoutes"));
+app.use("/api", require("./rutas/usuarioRoutes"));
+app.use("/api", require("./rutas/gastoRoutes"));
+app.use("/api", require("./rutas/ingresoRoutes"));
 
 // Iniciar servidor
 app.listen(PORT, () => console.log(`Servidor en línea en puerto: ${PORT}`));

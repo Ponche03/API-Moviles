@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const ingresoController = require('../controladores/ingresoController');
 
-router.post('/', ingresoController.crearIngreso);
+router.post('/ingresos', ingresoController.crearIngreso);
 
-router.get('/', ingresoController.obtenerIngresos);
+router.get('/ingresos', ingresoController.obtenerIngresos);
 
-router.get('/:id', ingresoController.obtenerIngresoPorId);
+router.get('/ingresos/:id', ingresoController.obtenerIngresoPorId);
 
-router.put('/:id', ingresoController.actualizarIngreso);
+router.put('/ingresos/:id', ingresoController.actualizarIngreso);
 
-router.delete('/:id', ingresoController.eliminarIngreso);
+router.delete('/ingresos/:id', ingresoController.eliminarIngreso);
 
 module.exports = router;
