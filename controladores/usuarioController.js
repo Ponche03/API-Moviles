@@ -44,7 +44,7 @@ exports.logIn = async (req, res) => {
 
 exports.registrarUsuario = async (req, res) => {
   try {
-    const { nombre, email, password, foto_perfil, usuario } = req.body;
+    const { nombre, usuario, email, password, foto_perfil } = req.body;
 
     // Verificar si ya existe un usuario con el mismo correo
     const usuarioExistente = await User.findOne({ Correo: email });
@@ -108,23 +108,28 @@ exports.obtenerUsuario = async (req, res) => {
 exports.editarUsuario = async (req, res) => {
   try {
     const { id } = req.params;
-    const { Correo, Nombre_Usuario, Nombre_Completo, Foto } = req.body;
+    const { Nombre_Usuario, Nombre_Completo, Foto, password } = req.body;
 
     const usuario = await User.findById(id);
     if (!usuario) {
       return res.status(404).json({ error: "Usuario no encontrado." });
     }
 
-    usuario.Correo = Correo || usuario.Correo;
     usuario.Nombre_Usuario = Nombre_Usuario || usuario.Nombre_Usuario;
     usuario.Nombre_Completo = Nombre_Completo || usuario.Nombre_Completo;
     if (Foto) {
       usuario.Foto = Foto;
     }
 
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      usuario.Contraseña = hashedPassword;
+    }
+
     await usuario.save();
     res.status(200).json({ message: "Usuario actualizado correctamente.", usuario });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Error interno del servidor." });
   }
 };
