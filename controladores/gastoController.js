@@ -1,7 +1,18 @@
 const Gasto = require("../modelos/gastoModel");
+const moment = require("moment-timezone");
+
 // Crear un gasto
 exports.crearGasto = async (req, res) => {
   try {
+    // Ajustar la fecha a la zona horaria local antes de guardar
+    if (req.body.Fecha) {
+      req.body.Fecha = moment
+        .tz(req.body.Fecha, "America/Mexico_City")
+        .toDate();
+    } else {
+      req.body.Fecha = moment.tz("America/Mexico_City").toDate();
+    }
+
     const nuevoGasto = new Gasto(req.body);
     const gastoGuardado = await nuevoGasto.save();
     res.status(201).json(gastoGuardado);
@@ -10,41 +21,54 @@ exports.crearGasto = async (req, res) => {
   }
 };
 
-// Obtener gastos por usuario con filtros y paginación
 exports.obtenerGastos = async (req, res) => {
   try {
-    const { usuarioID, fechaInicio, fechaFin, tipo, montoMin, montoMax, limite = 10, pagina = 1 } = req.query;
+    const {
+      usuarioID,
+      mes,   // mes numérico (1-12)
+      anio,  // año numérico (e.g., 2025)
+      tipo,
+      montoMin,
+      montoMax,
+      limite = 10,
+      pagina = 1,
+    } = req.query;
 
     if (!usuarioID) {
       return res.status(400).json({ mensaje: "El usuarioID es requerido." });
     }
 
     let filtros = {
-      Id_user: usuarioID
+      Id_user: usuarioID,
     };
 
-    // Filtro por rango de fecha
-    if (fechaInicio && fechaFin) {
+    // Filtro por mes y año (si vienen ambos)
+    if (mes && anio) {
+      const fechaInicio = new Date(anio, mes - 1, 1);
+      const fechaFin = new Date(anio, mes, 0, 23, 59, 59, 999);
+
       filtros.Fecha = {
-        $gte: new Date(fechaInicio),
-        $lte: new Date(fechaFin)
+        $gte: fechaInicio,
+        $lte: fechaFin,
       };
-    } else if (fechaInicio) {
-      filtros.Fecha = { $gte: new Date(fechaInicio) };
-    } else if (fechaFin) {
-      filtros.Fecha = { $lte: new Date(fechaFin) };
+    } else if (anio) {
+      const fechaInicio = new Date(anio, 0, 1);
+      const fechaFin = new Date(anio, 11, 31, 23, 59, 59, 999);
+
+      filtros.Fecha = {
+        $gte: fechaInicio,
+        $lte: fechaFin,
+      };
     }
 
-    // Filtro por tipo
     if (tipo) {
       filtros.Tipo = tipo;
     }
 
-    // Filtro por rango de monto
     if (montoMin && montoMax) {
       filtros.Monto = {
         $gte: parseFloat(montoMin),
-        $lte: parseFloat(montoMax)
+        $lte: parseFloat(montoMax),
       };
     } else if (montoMin) {
       filtros.Monto = { $gte: parseFloat(montoMin) };
@@ -55,8 +79,8 @@ exports.obtenerGastos = async (req, res) => {
     const limiteInt = parseInt(limite);
     const paginaInt = parseInt(pagina);
 
+    // Contar total documentos que coinciden
     const total = await Gasto.countDocuments(filtros);
-
     const totalPaginas = Math.ceil(total / limiteInt);
 
     const gastos = await Gasto.find(filtros)
@@ -64,23 +88,42 @@ exports.obtenerGastos = async (req, res) => {
       .skip((paginaInt - 1) * limiteInt)
       .limit(limiteInt);
 
+    const gastosConZona = gastos.map((gasto) => {
+      const gastoObj = gasto.toObject();
+      gastoObj.FechaLocal = moment(gasto.Fecha)
+        .tz("America/Mexico_City")
+        .format();
+      return gastoObj;
+    });
+
+    // Sumar monto después de map (solo gastos paginados)
+    const totalMonto = gastosConZona.reduce((acc, gasto) => acc + gasto.Monto, 0);
+
     res.json({
       total,
       totalPaginas,
       pagina: paginaInt,
-      gastos
+      totalMonto,
+      gastos: gastosConZona,
     });
   } catch (error) {
     res.status(500).json({ mensaje: "Error al obtener gastos", error });
   }
 };
 
+
 // Obtener un gasto por ID
 exports.obtenerGastoPorId = async (req, res) => {
   try {
     const gasto = await Gasto.findById(req.params.id).populate("Id_user");
     if (!gasto) return res.status(404).json({ mensaje: "Gasto no encontrado" });
-    res.json(gasto);
+
+    const gastoObj = gasto.toObject();
+    gastoObj.FechaLocal = moment(gasto.Fecha)
+      .tz("America/Mexico_City")
+      .format();
+
+    res.json(gastoObj);
   } catch (error) {
     res.status(500).json({ mensaje: "Error al obtener gasto", error });
   }
@@ -89,9 +132,25 @@ exports.obtenerGastoPorId = async (req, res) => {
 // Actualizar un gasto
 exports.actualizarGasto = async (req, res) => {
   try {
-    const gastoActualizado = await Gasto.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (req.body.Fecha) {
+      req.body.Fecha = moment
+        .tz(req.body.Fecha, "America/Mexico_City")
+        .toDate();
+    }
+
+    const gastoActualizado = await Gasto.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
     if (!gastoActualizado) return res.status(404).json({ mensaje: "Gasto no encontrado" });
-    res.json(gastoActualizado);
+
+    const gastoObj = gastoActualizado.toObject();
+    gastoObj.FechaLocal = moment(gastoActualizado.Fecha)
+      .tz("America/Mexico_City")
+      .format();
+
+    res.json(gastoObj);
   } catch (error) {
     res.status(500).json({ mensaje: "Error al actualizar gasto", error });
   }
