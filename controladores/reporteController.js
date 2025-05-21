@@ -7,22 +7,26 @@ const bcrypt = require("bcryptjs");
 
 exports.generarReportePorMes = async (req, res) => {
   try {
-    const { correo, mes, año, tipoMovimiento } = req.body;
+    const { usuarioID, mes, anio, tipoMovimiento } = req.query;
 
     // Validación básica
-    if (!correo || !mes || !año || !tipoMovimiento) {
-      return res.status(400).json({ error: 'Faltan datos requeridos (correo, mes, año, tipoMovimiento)' });
+    if (!usuarioID || !mes || !anio || !tipoMovimiento) {
+      return res.status(400).json({ error: 'Faltan datos requeridos (usuarioID, mes, anio, tipoMovimiento)' });
     }
 
-    // Buscar usuario por correo
-    const usuario = await Usuario.findOne({ Correo: correo });
+    // Verificar si el usuario existe por ID
+    const usuario = await Usuario.findById(usuarioID);
     if (!usuario) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
+    // Convertir mes y anio a enteros (por si vienen como strings)
+    const mesInt = parseInt(mes);
+    const anioInt = parseInt(anio);
+
     // Crear fechas de inicio y fin del mes del año especificado
-    const fechaInicio = new Date(año, mes - 1, 1);         // Ej: 2025-03-01
-    const fechaFin = new Date(año, mes, 0, 23, 59, 59);    // Ej: 2025-03-31 23:59:59
+    const fechaInicio = new Date(anioInt, mesInt - 1, 1);
+    const fechaFin = new Date(anioInt, mesInt, 0, 23, 59, 59);
 
     // Seleccionar el modelo adecuado
     const Modelo = tipoMovimiento === 'gasto' ? Gasto : Ingreso;
@@ -48,8 +52,8 @@ exports.generarReportePorMes = async (req, res) => {
     // Enviar respuesta
     res.json({
       usuario: usuario.Nombre_Usuario,
-      mes,
-      año,
+      mes: mesInt,
+      anio: anioInt,
       tipoMovimiento,
       totalGeneral,
       totalPorTipo: resultado.map(r => ({
@@ -63,3 +67,4 @@ exports.generarReportePorMes = async (req, res) => {
     res.status(500).json({ error: 'Ocurrió un error al generar el reporte' });
   }
 };
+
