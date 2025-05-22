@@ -24,7 +24,7 @@ exports.obtenerGastos = async (req, res) => {
       montoMax,
       limite = 10,
       pagina = 1,
-      ordenFecha = 'desc', // Nuevo parámetro con valor por defecto
+      ordenFecha = "desc",
     } = req.query;
 
     if (!usuarioID) {
@@ -34,23 +34,63 @@ exports.obtenerGastos = async (req, res) => {
     let filtros = { Id_user: usuarioID };
 
     if (anio && mes && dia) {
-      const fechaInicio = new Date(anio, mes - 1, dia, 0, 0, 0, 0);
-      const fechaFin = new Date(anio, mes - 1, dia, 23, 59, 59, 999);
+      const fechaInicio = moment
+        .tz(
+          {
+            year: anio,
+            month: mes - 1,
+            day: dia,
+            hour: 0,
+            minute: 0,
+            second: 0,
+          },
+          "America/Mexico_City"
+        )
+        .toDate();
+      const fechaFin = moment
+        .tz(
+          {
+            year: anio,
+            month: mes - 1,
+            day: dia,
+            hour: 23,
+            minute: 59,
+            second: 59,
+            millisecond: 999,
+          },
+          "America/Mexico_City"
+        )
+        .toDate();
       filtros.Fecha = { $gte: fechaInicio, $lte: fechaFin };
     } else if (anio && mes) {
-      const fechaInicio = new Date(anio, mes - 1, 1);
-      const fechaFin = new Date(anio, mes, 0, 23, 59, 59, 999);
+      const fechaInicio = moment
+        .tz({ year: anio, month: mes - 1, day: 1 }, "America/Mexico_City")
+        .startOf("day")
+        .toDate();
+      const fechaFin = moment
+        .tz({ year: anio, month: mes - 1 }, "America/Mexico_City")
+        .endOf("month")
+        .toDate();
       filtros.Fecha = { $gte: fechaInicio, $lte: fechaFin };
     } else if (anio) {
-      const fechaInicio = new Date(anio, 0, 1);
-      const fechaFin = new Date(anio, 11, 31, 23, 59, 59, 999);
+      const fechaInicio = moment
+        .tz({ year: anio, month: 0, day: 1 }, "America/Mexico_City")
+        .startOf("day")
+        .toDate();
+      const fechaFin = moment
+        .tz({ year: anio, month: 11, day: 31 }, "America/Mexico_City")
+        .endOf("day")
+        .toDate();
       filtros.Fecha = { $gte: fechaInicio, $lte: fechaFin };
     }
 
     if (tipo) filtros.Tipo = tipo;
 
     if (montoMin && montoMax) {
-      filtros.Monto = { $gte: parseFloat(montoMin), $lte: parseFloat(montoMax) };
+      filtros.Monto = {
+        $gte: parseFloat(montoMin),
+        $lte: parseFloat(montoMax),
+      };
     } else if (montoMin) {
       filtros.Monto = { $gte: parseFloat(montoMin) };
     } else if (montoMax) {
@@ -59,14 +99,14 @@ exports.obtenerGastos = async (req, res) => {
 
     const limiteInt = parseInt(limite);
     const paginaInt = parseInt(pagina);
-    const orden = ordenFecha === 'asc' ? 1 : -1;
+    const orden = ordenFecha === "asc" ? 1 : -1;
 
     const total = await Gasto.countDocuments(filtros);
     const totalPaginas = Math.ceil(total / limiteInt);
 
     const gastos = await Gasto.find(filtros)
       .populate("Id_user")
-      .sort({ Fecha: orden }) // Ordenar por fecha
+      .sort({ Fecha: orden })
       .skip((paginaInt - 1) * limiteInt)
       .limit(limiteInt);
 
@@ -78,7 +118,10 @@ exports.obtenerGastos = async (req, res) => {
       return gastoObj;
     });
 
-    const totalMonto = gastosConZona.reduce((acc, gasto) => acc + gasto.Monto, 0);
+    const totalMonto = gastosConZona.reduce(
+      (acc, gasto) => acc + gasto.Monto,
+      0
+    );
 
     res.json({
       total,
@@ -91,6 +134,7 @@ exports.obtenerGastos = async (req, res) => {
     res.status(500).json({ mensaje: "Error al obtener gastos", error });
   }
 };
+
 
 
 // Obtener un gasto por ID
