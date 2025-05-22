@@ -25,8 +25,9 @@ exports.obtenerIngresos = async (req, res) => {
   try {
     const {
       usuarioID,
-      mes,   // mes numérico (1-12)
-      anio,  // año numérico (e.g., 2025)
+      anio,
+      mes,
+      dia,   // nuevo parámetro opcional
       tipo,
       montoMin,
       montoMax,
@@ -42,33 +43,24 @@ exports.obtenerIngresos = async (req, res) => {
       Id_user: usuarioID,
     };
 
-    if (mes && anio) {
+    if (anio && mes && dia) {
+      const fechaInicio = new Date(anio, mes - 1, dia, 0, 0, 0, 0);
+      const fechaFin = new Date(anio, mes - 1, dia, 23, 59, 59, 999);
+      filtros.Fecha = { $gte: fechaInicio, $lte: fechaFin };
+    } else if (anio && mes) {
       const fechaInicio = new Date(anio, mes - 1, 1);
       const fechaFin = new Date(anio, mes, 0, 23, 59, 59, 999);
-
-      filtros.Fecha = {
-        $gte: fechaInicio,
-        $lte: fechaFin,
-      };
+      filtros.Fecha = { $gte: fechaInicio, $lte: fechaFin };
     } else if (anio) {
       const fechaInicio = new Date(anio, 0, 1);
       const fechaFin = new Date(anio, 11, 31, 23, 59, 59, 999);
-
-      filtros.Fecha = {
-        $gte: fechaInicio,
-        $lte: fechaFin,
-      };
+      filtros.Fecha = { $gte: fechaInicio, $lte: fechaFin };
     }
 
-    if (tipo) {
-      filtros.Tipo = tipo;
-    }
+    if (tipo) filtros.Tipo = tipo;
 
     if (montoMin && montoMax) {
-      filtros.Monto = {
-        $gte: parseFloat(montoMin),
-        $lte: parseFloat(montoMax),
-      };
+      filtros.Monto = { $gte: parseFloat(montoMin), $lte: parseFloat(montoMax) };
     } else if (montoMin) {
       filtros.Monto = { $gte: parseFloat(montoMin) };
     } else if (montoMax) {
@@ -94,7 +86,6 @@ exports.obtenerIngresos = async (req, res) => {
       return ingresoObj;
     });
 
-    // Sumar monto después de map (solo ingresos paginados)
     const totalMonto = ingresosConZona.reduce((acc, ingreso) => acc + ingreso.Monto, 0);
 
     res.json({
