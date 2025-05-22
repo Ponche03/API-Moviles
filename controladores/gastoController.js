@@ -4,15 +4,6 @@ const moment = require("moment-timezone");
 // Crear un gasto
 exports.crearGasto = async (req, res) => {
   try {
-    // Ajustar la fecha a la zona horaria local antes de guardar
-    if (req.body.Fecha) {
-      req.body.Fecha = moment
-        .tz(req.body.Fecha, "America/Mexico_City")
-        .toDate();
-    } else {
-      req.body.Fecha = moment.tz("America/Mexico_City").toDate();
-    }
-
     const nuevoGasto = new Gasto(req.body);
     const gastoGuardado = await nuevoGasto.save();
     res.status(201).json(gastoGuardado);

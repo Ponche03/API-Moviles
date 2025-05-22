@@ -4,15 +4,6 @@ const moment = require("moment-timezone");
 // Crear ingreso
 exports.crearIngreso = async (req, res) => {
   try {
-    // Ajustar la fecha a la zona horaria local antes de guardar
-    if (req.body.Fecha) {
-      req.body.Fecha = moment
-        .tz(req.body.Fecha, "America/Mexico_City")
-        .toDate();
-    } else {
-      req.body.Fecha = moment.tz("America/Mexico_City").toDate();
-    }
-
     const nuevoIngreso = new Ingreso(req.body);
     const ingresoGuardado = await nuevoIngreso.save();
     res.status(201).json(ingresoGuardado);
