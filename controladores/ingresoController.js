@@ -27,21 +27,20 @@ exports.obtenerIngresos = async (req, res) => {
       usuarioID,
       anio,
       mes,
-      dia,   // nuevo parámetro opcional
+      dia,
       tipo,
       montoMin,
       montoMax,
       limite = 10,
       pagina = 1,
+      ordenFecha = 'desc', // Nuevo parámetro con valor por defecto
     } = req.query;
 
     if (!usuarioID) {
       return res.status(400).json({ mensaje: "El usuarioID es requerido." });
     }
 
-    let filtros = {
-      Id_user: usuarioID,
-    };
+    let filtros = { Id_user: usuarioID };
 
     if (anio && mes && dia) {
       const fechaInicio = new Date(anio, mes - 1, dia, 0, 0, 0, 0);
@@ -69,12 +68,14 @@ exports.obtenerIngresos = async (req, res) => {
 
     const limiteInt = parseInt(limite);
     const paginaInt = parseInt(pagina);
+    const orden = ordenFecha === 'asc' ? 1 : -1;
 
     const total = await Ingreso.countDocuments(filtros);
     const totalPaginas = Math.ceil(total / limiteInt);
 
     const ingresos = await Ingreso.find(filtros)
       .populate("Id_user")
+      .sort({ Fecha: orden }) // Ordenar por fecha
       .skip((paginaInt - 1) * limiteInt)
       .limit(limiteInt);
 
@@ -99,6 +100,7 @@ exports.obtenerIngresos = async (req, res) => {
     res.status(500).json({ mensaje: "Error al obtener ingresos", error });
   }
 };
+
 
 // Obtener ingreso por ID
 exports.obtenerIngresoPorId = async (req, res) => {
