@@ -31,70 +31,31 @@ exports.obtenerGastos = async (req, res) => {
       return res.status(400).json({ mensaje: "El usuarioID es requerido." });
     }
 
-    let filtros = { Id_user: usuarioID };
+    const filtros = { Id_user: usuarioID };
 
-    if (anio && mes && dia) {
-      const fechaInicio = moment
-        .tz(
-          {
-            year: anio,
-            month: mes - 1,
-            day: dia,
-            hour: 0,
-            minute: 0,
-            second: 0,
-          },
-          "America/Mexico_City"
-        )
-        .toDate();
-      const fechaFin = moment
-        .tz(
-          {
-            year: anio,
-            month: mes - 1,
-            day: dia,
-            hour: 23,
-            minute: 59,
-            second: 59,
-            millisecond: 999,
-          },
-          "America/Mexico_City"
-        )
-        .toDate();
-      filtros.Fecha = { $gte: fechaInicio, $lte: fechaFin };
-    } else if (anio && mes) {
-      const fechaInicio = moment
-        .tz({ year: anio, month: mes - 1, day: 1 }, "America/Mexico_City")
-        .startOf("day")
-        .toDate();
-      const fechaFin = moment
-        .tz({ year: anio, month: mes - 1 }, "America/Mexico_City")
-        .endOf("month")
-        .toDate();
-      filtros.Fecha = { $gte: fechaInicio, $lte: fechaFin };
-    } else if (anio) {
-      const fechaInicio = moment
-        .tz({ year: anio, month: 0, day: 1 }, "America/Mexico_City")
-        .startOf("day")
-        .toDate();
-      const fechaFin = moment
-        .tz({ year: anio, month: 11, day: 31 }, "America/Mexico_City")
-        .endOf("day")
-        .toDate();
-      filtros.Fecha = { $gte: fechaInicio, $lte: fechaFin };
+    if (anio) {
+      const inicio = moment.tz("America/Mexico_City").year(anio).startOf("year");
+      const fin = moment.tz("America/Mexico_City").year(anio).endOf("year");
+
+      if (mes) {
+        inicio.month(mes - 1).startOf("month");
+        fin.month(mes - 1).endOf("month");
+
+        if (dia) {
+          inicio.date(dia).startOf("day");
+          fin.date(dia).endOf("day");
+        }
+      }
+
+      filtros.Fecha = { $gte: inicio.toDate(), $lte: fin.toDate() };
     }
 
     if (tipo) filtros.Tipo = tipo;
 
-    if (montoMin && montoMax) {
-      filtros.Monto = {
-        $gte: parseFloat(montoMin),
-        $lte: parseFloat(montoMax),
-      };
-    } else if (montoMin) {
-      filtros.Monto = { $gte: parseFloat(montoMin) };
-    } else if (montoMax) {
-      filtros.Monto = { $lte: parseFloat(montoMax) };
+    if (montoMin || montoMax) {
+      filtros.Monto = {};
+      if (montoMin) filtros.Monto.$gte = parseFloat(montoMin);
+      if (montoMax) filtros.Monto.$lte = parseFloat(montoMax);
     }
 
     const limiteInt = parseInt(limite);
