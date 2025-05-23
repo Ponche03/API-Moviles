@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const gastoController = require('../controladores/gastoController');
+const authMiddleware = require("../middlewares/authMiddleware");
 
 router.post('/gastos', gastoController.crearGasto);
 
