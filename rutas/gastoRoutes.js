@@ -3,14 +3,14 @@ const router = express.Router();
 const gastoController = require('../controladores/gastoController');
 const authMiddleware = require("../middlewares/authMiddleware");
 
-router.post('/gastos', gastoController.crearGasto);
+router.post('/gastos', authMiddleware, gastoController.crearGasto);
 
-router.get('/gastos', gastoController.obtenerGastos);
+router.get('/gastos', authMiddleware, gastoController.obtenerGastos);
 
-router.get('/gastos/:id', gastoController.obtenerGastoPorId);
+router.get('/gastos/:id', authMiddleware, gastoController.obtenerGastoPorId);
 
-router.put('/gastos/:id', gastoController.actualizarGasto);
+router.put('/gastos/:id', authMiddleware, gastoController.actualizarGasto);
 
-router.delete('/gastos/:id', gastoController.eliminarGasto);
+router.delete('/gastos/:id', authMiddleware, gastoController.eliminarGasto);
 
 module.exports = router;
